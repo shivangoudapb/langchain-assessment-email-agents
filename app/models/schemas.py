@@ -36,6 +36,11 @@ class EmailInput(BaseModel):
 class Chain1Result(BaseModel):
     category: EmailCategory
 
+    request_intent: str = Field(
+        max_length=50,
+        description="Short operational request type"
+    )
+
     confidence: float = Field(
         ge=0.0,
         le=1.0,
@@ -44,10 +49,20 @@ class Chain1Result(BaseModel):
 
     extracted_ids: List[str]
 
+class SummaryResult(BaseModel):
+    summary: str = Field(
+        max_length=200,
+        description="Short operational summary"
+    )
 
 # Output of Chain 1
 class ClassificationOutput(BaseModel):
     category: EmailCategory
+
+    request_intent: str = Field(
+        max_length=50,
+        description="Short operational request type"
+    )
 
     extracted_ids: List[str]
 
@@ -68,6 +83,8 @@ class ActionOutput(BaseModel):
 # Final pipeline output
 class FinalOutput(BaseModel):
     category: EmailCategory
+
+    request_intent: str
 
     extracted_ids: List[str]
 
