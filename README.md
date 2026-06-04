@@ -1,227 +1,411 @@
-# Take-Home Assignment: LangChain Email Classification Chains
+# LangChain Email Classification & Action Recommendation Pipeline
 
-| | |
-| --- | --- |
-| **Duration** | 48 hours |
-| **Goal** | Build composable LangChain chains to classify operational emails and extract structured metadata. |
+## Overview
+
+This project implements a composable LangChain-based email processing pipeline for operational emails in a manufacturing supply chain.
+
+The system classifies emails, extracts key identifiers, recommends operational actions, and generates concise summaries for operations teams.
+
+The solution is built using two connected LangChain chains:
+
+```text
+Raw Email
+    ↓
+Chain 1: Classification + Extraction
+    ↓
+ClassificationOutput
+    ↓
+Chain 2: Action Recommendation
+    ↓
+ActionOutput
+    ↓
+FinalOutput
+```
+
+A FastAPI endpoint is included for integration into larger systems.
 
 ---
 
-## The Problem
+## Features
 
-We receive operational communication from buyers and vendors in a manufacturing
-supply chain. In the current workflow, each email requires:
+### Chain 1 – Classification & Extraction
 
-1. **Classification** — what type of operational request is this?
-2. **Extraction** — what key identifiers are mentioned?
-3. **Action recommendation** — what should happen next?
+Responsibilities:
 
-Currently, these are done as manual LLM calls. Your task is to build
-**reusable LangChain chains** that can be composed together and tested
-independently.
+* Classify emails into:
 
----
+  * `SAMPLING`
+  * `COSTING`
+  * `PURCHASE_ORDER`
+  * `GENERAL`
+  * `UNKNOWN`
+* Extract style identifiers such as:
 
-## What You're Building
+  * `RI15104`
+  * `ST-2045`
+* Generate a short operational intent
+* Return a confidence score
+* Validate outputs using Pydantic
+* Prevent hallucinated style IDs
 
-**Two connected LangChain chains:**
-
-```
-Raw Email → [Chain 1: Classify + Extract] → Intermediate Result
-                                                      ↓
-                                      [Chain 2: Recommend Action]
-                                                     ↓
-                                               Final Result
-```
-
-In addition to the two-chain implementation above, include:
-
-1. **Future shared order state (design notes only):** propose how order state
-   should be stored and updated when multiple agents interact with the same
-   order over time.
-
----
-
-## Examples
-
-### Example 1: Sampling Request
-
-**Input**
-
-```json
-{
-  "subject": "Need mockup sample for RI15104",
-  "body": "Hi, please arrange mockup sample for RI15104 with trims. Thanks.",
-  "thread_context": "First order from this buyer."
-}
-```
-
-**Expected Chain 1 output**
+Example output:
 
 ```json
 {
   "category": "SAMPLING",
+  "request_intent": "mockup sample",
   "extracted_ids": ["RI15104"],
-  "confidence": 0.95
+  "confidence": 1.0
 }
 ```
 
-**Expected Chain 2 output**
+---
+
+### Chain 2 – Action Recommendation
+
+Responsibilities:
+
+* Consume Chain 1 output
+* Recommend the next operational action
+* Assign priority
+* Generate an operational summary
+
+Example output:
 
 ```json
 {
   "recommended_action": "CREATE_SAMPLE_TASK",
   "priority": "HIGH",
-  "summary": "Buyer requested mockup sample for style RI15104."
+  "summary": "The sender requested a mockup sample for style ID RI15104."
 }
 ```
 
 ---
 
-### Example 2: General Follow-up
-
-**Input**
+## Final Pipeline Output
 
 ```json
 {
-  "subject": "Following up",
-  "body": "Any update on the previous discussion?",
-  "thread_context": "Previous context about a costing discussion."
-}
-```
-
-**Expected Chain 1 output**
-
-```json
-{
-  "category": "GENERAL",
-  "extracted_ids": [],
-  "confidence": 0.88
-}
-```
-
-**Expected Chain 2 output**
-
-```json
-{
-  "recommended_action": "NO_ACTION",
-  "priority": "LOW",
-  "summary": "General follow-up, no immediate action needed."
+  "category": "SAMPLING",
+  "request_intent": "mockup sample",
+  "extracted_ids": ["RI15104"],
+  "confidence": 1.0,
+  "recommended_action": "CREATE_SAMPLE_TASK",
+  "priority": "HIGH",
+  "summary": "The sender requested a mockup sample for style ID RI15104."
 }
 ```
 
 ---
 
-## Requirements
+# Architecture
 
-### Chain 1: Classification + Extraction
+## Why Two Chains Instead of One?
 
-- Classify email into: `SAMPLING`, `COSTING`, `PURCHASE_ORDER`, `GENERAL`, `UNKNOWN`
-- Extract **style reference IDs** (patterns like `RI15104`, `ST-2045`)
-- Return confidence score (0.0–1.0)
-- Use **Pydantic** for output validation
-- Prevent hallucinated extractions (validate patterns)
+The system is intentionally split into two chains.
 
-### Chain 2: Action Recommendation
+### Chain 1
 
-- Takes Chain 1 output as input (demonstrates composition)
-- Map classification + extracted IDs to recommended actions
-- Provide priority and summary for ops teams
-- Also use **Pydantic** for structured output
+Responsible for language understanding:
 
-### General Constraints
+* Classification
+* Style ID extraction
+* Intent identification
 
-- Use **LangChain** (not raw API calls)
-- Write **at least 4 test cases** covering different scenarios
-- Include a **README** explaining your approach
-- Show how this integrates into an existing email pipeline
-- For this assignment, use only email-style input:
-  `subject`, `body`, `thread_context`
-- Add a design note (no coding required) for maintaining shared order state
-  that multiple agents can update safely
+### Chain 2
 
----
+Responsible for workflow decisions:
 
-## Deliverables
+* Action recommendation
+* Prioritization
+* Summary generation
 
-- [ ] LangChain chain implementation
-- [ ] Pydantic models for all inputs/outputs
-- [ ] Test cases (4+, with sample emails)
-- [ ] README with:
-  - How to run the chains
-  - Why you structured them this way (chain composition, reusability)
-  - How to integrate into a larger pipeline
-  - A brief note on proposed shared order-state model for multi-agent updates
-- [ ] Bonus: FastAPI endpoint or database persistence
+### Benefits
+
+* Better modularity
+* Easier testing
+* Easier prompt maintenance
+* Independent evolution of business logic
+* Reusable intermediate outputs
+
+This design allows future chains to be added without changing existing components.
 
 ---
 
-## Getting Started
+# Hallucination Prevention
+
+A common failure mode of LLMs is hallucinating identifiers that do not exist in the source email.
+
+To mitigate this:
+
+1. Style IDs must match approved patterns:
+
+```text
+RI15104
+ST-2045
+```
+
+2. Every extracted ID is validated against the original email text.
+
+3. IDs not present in the email are discarded.
+
+Example:
+
+```python
+validate_style_ids(
+    ["RI15104", "FAKE123"],
+    source_email
+)
+```
+
+Output:
+
+```python
+["RI15104"]
+```
+
+This validation layer ensures downstream workflows never receive fabricated identifiers.
+
+---
+
+# Extending the System
+
+To add a new category such as:
+
+```text
+INSPECTION_REQUEST
+```
+
+Only four changes are required:
+
+1. Add enum value in `schemas.py`
+2. Update Chain 1 prompt instructions
+3. Add mapping in `action_mapper.py`
+4. Add tests
+
+No pipeline changes are required.
+
+This keeps the architecture open for future workflow expansion.
+
+---
+
+# Testing Strategy
+
+The project uses deterministic unit tests for validation and business logic.
+
+### Style Validator Tests
+
+* ID extraction
+* Duplicate removal
+* Pattern validation
+* Hallucination prevention
+
+### Action Mapper Tests
+
+* Category → Action mapping
+* Category → Priority mapping
+
+### Schema Validation Tests
+
+* Confidence bounds
+* Pydantic validation rules
+
+### Test Results
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Create your project structure (suggested starting point)
-mkdir -p app/llm
-touch app/llm/chains.py
-touch app/llm/models.py
-mkdir tests
-touch tests/test_chains.py
+pytest tests -v
 ```
 
-You choose the rest of the layout. Build everything from scratch.
+Result:
+
+```text
+11 passed
+```
 
 ---
 
-## Test Inputs
+# Fixture Evaluation
 
-Ten sample emails are provided in `fixtures/sample_emails.json`. Each entry
-has the three fields your chains should accept:
+An evaluation script is provided:
 
-- `subject`
-- `body`
-- `thread_context`
+```bash
+python evaluation/evaluate_fixtures.py
+```
 
-These are adapted from real production cleaned emails and thread artifacts.
-See `docs/INPUT_FORMAT.md` for how production JSON maps to this shape.
+The script runs the pipeline against the provided fixture emails and records results for manual inspection.
 
-The `id` and `source_inspiration` fields are for your reference only — do
-**not** pass them into the chains.
-
-Use at least 4 of these in your test suite; you may add your own cases too.
-
-Client document/techpack samples in `Client docs demo/` are for domain context
-only. They are intended to help you understand how future documentation flows
-could be added, but they are **not** part of the required input path in this
-assignment.
-
-Use these samples to think about future order-state fields (for example:
-order IDs, buyer/vendor references, style refs, status checkpoints, ownership,
-timestamps, and update history), then document your proposed schema and update
-rules in your README.
+This evaluation is intentionally separate from unit tests to avoid dependence on external LLM API availability.
 
 ---
 
-## Questions to Think About
+# FastAPI Integration
 
-1. Why build two separate chains instead of one?
-2. How do you prevent the LLM from hallucinating style reference IDs?
-3. How would you add a new email type (e.g., `INSPECTION_REQUEST`) without rewriting the chains?
-4. How do you test these chains without calling the LLM API every time?
-5. What is the minimal shared order-state model that allows multiple agents to
-   collaborate without overwriting each other's updates?
-6. Which fields from techpack/client docs are important to persist for future
-   flows, even if they are not part of today's chain input?
+Run:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Endpoint:
+
+```http
+POST /process-email
+```
+
+Example Request:
+
+```json
+{
+  "subject": "Need mockup sample for RI15104",
+  "body": "Please arrange mockup sample for RI15104.",
+  "thread_context": "First order from this buyer."
+}
+```
+
+Example Response:
+
+```json
+{
+  "category": "SAMPLING",
+  "request_intent": "mockup sample",
+  "extracted_ids": ["RI15104"],
+  "confidence": 1.0,
+  "recommended_action": "CREATE_SAMPLE_TASK",
+  "priority": "HIGH",
+  "summary": "The sender requested a mockup sample for style ID RI15104."
+}
+```
 
 ---
 
-## Evaluation
+# Shared Order-State Design (Future Multi-Agent System)
 
-We'll assess:
+If multiple agents interact with the same order, a shared order-state model should be maintained.
 
-- LangChain structure & composition
-- Structured output validation
-- Test coverage & correctness
-- Code clarity & integration feasibility
-- Clarity and completeness of your shared order-state design notes
+## Proposed Minimal Schema
+
+```json
+{
+  "order_id": "",
+  "style_ids": [],
+  "buyer": "",
+  "vendor": "",
+  "status": "",
+  "owner": "",
+  "last_updated": "",
+  "history": []
+}
+```
+
+## Update Rules
+
+* Agents never overwrite existing history
+* Every update appends a new event
+* Current state is derived from event history
+* Ownership changes are recorded as events
+* Timestamps are stored for all modifications
+
+This event-driven approach prevents agents from accidentally overwriting each other's work.
+
+---
+
+# Important Future Fields
+
+Future integrations with techpacks and client documents should persist:
+
+* Style references
+* Buyer information
+* Vendor information
+* PO numbers
+* Costing revisions
+* Shipment milestones
+* CRD dates
+* Approval checkpoints
+* Ownership assignments
+* Audit history
+
+These fields enable future workflow automation beyond email processing.
+
+---
+
+# Project Structure
+
+```text
+app/
+├── api/
+│   └── routes.py
+├── llm/
+│   ├── chains.py
+│   ├── prompts.py
+│   └── llm_factory.py
+├── models/
+│   └── schemas.py
+├── services/
+│   ├── action_mapper.py
+│   └── email_pipeline.py
+├── validators/
+│   └── style_validator.py
+└── main.py
+
+tests/
+├── test_action_mapper.py
+├── test_schemas.py
+└── test_style_validator.py
+
+evaluation/
+└── evaluate_fixtures.py
+```
+
+---
+
+# Setup
+
+## Create Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+Activate:
+
+```bash
+venv\Scripts\activate
+```
+
+## Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Configure Environment
+
+Create a `.env` file:
+
+```text
+GOOGLE_API_KEY=your_api_key_here
+```
+
+## Run API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+---
+
+# Technologies Used
+
+* Python 3.11
+* LangChain
+* Gemini 2.5 Flash
+* FastAPI
+* Pydantic
+* Pytest
+* python-dotenv
