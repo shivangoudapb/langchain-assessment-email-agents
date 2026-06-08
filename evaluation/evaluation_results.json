@@ -1,0 +1,135 @@
+[
+  {
+    "fixture_id": "01_sampling_mockup_single_style",
+    "result": {
+      "category": "SAMPLING",
+      "request_intent": "mockup sample",
+      "extracted_ids": [
+        "RI15104"
+      ],
+      "confidence": 1.0,
+      "recommended_action": "CREATE_SAMPLE_TASK",
+      "priority": "HIGH",
+      "summary": "The sender requested a mockup sample for style ID RI15104."
+    }
+  },
+  {
+    "fixture_id": "02_sampling_yardage_request",
+    "result": {
+      "category": "SAMPLING",
+      "request_intent": "yardage approval",
+      "extracted_ids": [
+        "ST-2045"
+      ],
+      "confidence": 0.95,
+      "recommended_action": "CREATE_SAMPLE_TASK",
+      "priority": "HIGH",
+      "summary": "The sender requested yardage approval for style ST-2045."
+    }
+  },
+  {
+    "fixture_id": "03_sampling_olx_fit_request",
+    "result": {
+      "category": "SAMPLING",
+      "request_intent": "initiate proto sample",
+      "extracted_ids": [
+        "RI14822"
+      ],
+      "confidence": 1.0,
+      "recommended_action": "CREATE_SAMPLE_TASK",
+      "priority": "HIGH",
+      "summary": "The sender requested to initiate a proto sample for style ID RI14822."
+    }
+  },
+  {
+    "fixture_id": "04_costing_revised_quote",
+    "result": {
+      "category": "COSTING",
+      "request_intent": "revised costing and capacity",
+      "extracted_ids": [
+        "RI15201"
+      ],
+      "confidence": 0.9,
+      "recommended_action": "CREATE_COSTING_TASK",
+      "priority": "HIGH",
+      "summary": "The sender requested revised costing and capacity for style ID RI15201."
+    }
+  },
+  {
+    "fixture_id": "05_costing_capacity_followup",
+    "result": {
+      "category": "COSTING",
+      "request_intent": "revised costing update",
+      "extracted_ids": [
+        "ST-2045",
+        "RI15201"
+      ],
+      "confidence": 1.0,
+      "recommended_action": "CREATE_COSTING_TASK",
+      "priority": "HIGH",
+      "summary": "The sender requested a revised costing update for style IDs ST-2045 and RI15201."
+    }
+  },
+  {
+    "fixture_id": "06_purchase_order_ship_mode_update",
+    "result": {
+      "category": "PURCHASE_ORDER",
+      "request_intent": "PO booking confirmation",
+      "extracted_ids": [],
+      "confidence": 1.0,
+      "recommended_action": "UPDATE_PO_WORKFLOW",
+      "priority": "MEDIUM",
+      "summary": "The sender requested confirmation for a purchase order booking."
+    }
+  },
+  {
+    "fixture_id": "07_purchase_order_prebooking",
+    "result": {
+      "category": "PURCHASE_ORDER",
+      "request_intent": "Confirm vessel details",
+      "extracted_ids": [
+        "RI15104"
+      ],
+      "confidence": 0.95,
+      "recommended_action": "UPDATE_PO_WORKFLOW",
+      "priority": "MEDIUM",
+      "summary": "The sender requested confirmation of vessel details for a PURCHASE_ORDER, referencing style ID RI15104."
+    }
+  },
+  {
+    "fixture_id": "08_general_wip_meeting_followup",
+    "result": {
+      "category": "GENERAL",
+      "request_intent": "provide cheat sheet and packaging",
+      "extracted_ids": [],
+      "confidence": 0.9,
+      "recommended_action": "NO_ACTION",
+      "priority": "LOW",
+      "summary": "The sender requested a cheat sheet and packaging."
+    }
+  },
+  {
+    "fixture_id": "09_general_production_update",
+    "result": {
+      "category": "GENERAL",
+      "request_intent": "production plan update",
+      "extracted_ids": [],
+      "confidence": 1.0,
+      "recommended_action": "NO_ACTION",
+      "priority": "LOW",
+      "summary": "The sender requested an update to the production plan."
+    }
+  },
+  {
+    "fixture_id": "10_unknown_delivery_failure",
+    "result": {
+      "category": "UNKNOWN",
+      "request_intent": "mail delivery failure",
+      "extracted_ids": [],
+      "confidence": 1.0,
+      "recommended_action": "MANUAL_REVIEW",
+      "priority": "MEDIUM",
+      "summary": "The sender reported a mail delivery failure."
+    }
+  }
+]

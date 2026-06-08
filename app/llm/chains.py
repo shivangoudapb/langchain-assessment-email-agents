@@ -54,14 +54,6 @@ class ClassificationExtractionChain:
             }
         )
 
-        result = self.chain.invoke(
-            {
-                "subject": email.subject,
-                "body": email.body,
-                "thread_context": email.thread_context,
-            }
-        )
-
         source_text = "\n".join(
             [
                 email.subject,
